@@ -26,7 +26,7 @@ jobs:
         with:
           repository: "microg/GmsCore"
           latest: true
-          fileName: "com.google.android.gms-*.apk, com.android.vending-*.apk,"
+          fileName: "com.google.android.gms-*.apk, com.android.vending-*.apk"
           out-file-path: dl
 
       - name: Filter -hw
