@@ -1,0 +1,5 @@
+id=mm-i
+name=microG Services
+author=bimuafaq
+description=microG Services
+updateJson=https://raw.githubusercontent.com/bimuafaq/mm-i/main/update.json

@@ -1,0 +1,76 @@
+name: build
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: ver
+        name: Read update.json
+        run: |
+          TAG=$(jq -r .version update.json)
+          VC=$(jq -r .versionCode update.json)
+          [ -z "$TAG" ] || [ "$TAG" = "null" ] && exit 1
+          [ -z "$VC" ] || [ "$VC" = "null" ] && exit 1
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "vc=$VC" >> $GITHUB_OUTPUT
+          echo "version=$TAG versionCode=$VC"
+
+      - name: Download GmsCore
+        uses: robinraju/release-downloader@v1.13
+        with:
+          repository: "microg/GmsCore"
+          latest: true
+          fileName: com.google.android.gms-*.apk
+          out-file-path: dl
+
+      - name: Download FakeStore
+        uses: robinraju/release-downloader@v1.13
+        with:
+          repository: "microg/GmsCore"
+          latest: true
+          fileName: com.android.vending-*.apk
+          out-file-path: dl
+
+      - name: Filter -hw
+        run: |
+          rm -f dl/*-hw.apk
+          ls -lh dl
+          test -f dl/com.google.android.gms-*.apk
+          test -f dl/com.android.vending-*.apk
+          file dl/*.apk
+
+      - name: Assemble
+        run: |
+          TAG=${{ steps.ver.outputs.tag }}
+          VC=${{ steps.ver.outputs.vc }}
+          mkdir -p system/priv-app/GmsCore system/priv-app/FakeStore
+          cp dl/com.google.android.gms-*.apk system/priv-app/GmsCore/GmsCore.apk
+          cp dl/com.android.vending-*.apk system/priv-app/FakeStore/FakeStore.apk
+          grep -q "^version=" module.prop && sed -i "s/^version=.*/version=$TAG/" module.prop || echo "version=$TAG" >> module.prop
+          grep -q "^versionCode=" module.prop && sed -i "s/^versionCode=.*/versionCode=$VC/" module.prop || echo "versionCode=$VC" >> module.prop
+          cat module.prop
+          echo "--- system ---"
+          find system -type f | sort
+          ls -lh system/priv-app/*/* system/app/GsfProxy/*
+
+      - name: Zip
+        run: zip -r9 mm-i-${{ steps.ver.outputs.tag }}.zip module.prop system update.json && ls -lh *.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mm-i-${{ steps.ver.outputs.tag }}
+          path: |
+            mm-i-*.zip
+            update.json
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: mm-i ${{ steps.ver.outputs.tag }}
+          files: mm-i-${{ steps.ver.outputs.tag }}.zip
