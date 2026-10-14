@@ -21,12 +21,20 @@ jobs:
           echo "vc=$VC" >> $GITHUB_OUTPUT
           echo "version=$TAG versionCode=$VC"
 
-      - name: Download Resource
+      - name: Download GmsCore
         uses: robinraju/release-downloader@v1.13
         with:
           repository: "microg/GmsCore"
           latest: true
-          fileName: "'com.google.android.gms-*.apk', 'com.android.vending-*.apk'"
+          fileName: com.google.android.gms-*.apk
+          out-file-path: dl
+
+      - name: Download FakeStore
+        uses: robinraju/release-downloader@v1.13
+        with:
+          repository: "microg/GmsCore"
+          latest: true
+          fileName: com.android.vending-*.apk
           out-file-path: dl
 
       - name: Filter -hw
